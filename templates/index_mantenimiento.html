@@ -1,179 +1,364 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicción - APARCO CARGO EXPRESS E.I.R.L.</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #e74c3c;
-            --accent-color: #3498db;
-            --light-color: #f8f9fa;
-            --dark-color: #343a40;
-        }
-        
-        body {
-            background-color: var(--light-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--dark-color);
-        }
-        
-        .header-container {
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-            color: white;
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        
-        .form-container {
-            background-color: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-            margin-bottom: 2rem;
-        }
-        
-        .form-label {
-            font-weight: 600;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-        
-        .form-control {
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            border: 1px solid #ced4da;
-            transition: all 0.3s ease;
-        }
-        
-        .form-control:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
-        }
-        
-        .btn-primary {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2980b9;
-            border-color: #2980b9;
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            border-radius: 8px;
-            padding: 0.6rem 1.5rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-        }
-        
-        .result-container {
-            background-color: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-            border-left: 5px solid var(--accent-color);
-            margin-top: 2rem;
-        }
-        
-        .graphic-container {
-            background-color: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-            margin-top: 1.5rem;
-        }
-        
-        .company-name {
-            letter-spacing: 1px;
-            font-weight: 300;
-            opacity: 0.9;
-        }
-        
-        .input-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .action-buttons {
-            margin-top: 1.5rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container py-5">
-        <!-- Encabezado -->
-        <div class="header-container text-center">
-            <h1 class="display-5 fw-bold mb-3"><i class="fas fa-chart-line me-2"></i>Sistema de Mantenimiento Predictivo</h1>
-            <p class="company-name lead mb-0">APARCO CARGO EXPRESS E.I.R.L.</p>
+{% extends "base.html" %}
+
+{% block title %}Dashboard Inteligente | APARCO CARGO{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.css">
+<style>
+    /* Estilos específicos para el dashboard que extienden styles.css */
+    .dashboard-header-modern {
+        background: linear-gradient(90deg, var(--secondary-neon), var(--primary-neon));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        margin-bottom: 2rem;
+    }
+
+    .stat-icon-wrapper {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        background: rgba(112, 0, 255, 0.1);
+        color: var(--secondary-neon);
+        border: 1px solid var(--border-glow);
+    }
+
+    .trucks .stat-icon-wrapper { color: var(--primary-neon); background: rgba(0, 242, 255, 0.1); }
+    .alerts .stat-icon-wrapper { color: var(--accent-neon); background: rgba(255, 0, 200, 0.1); }
+    .active .stat-icon-wrapper { color: #00ff88; background: rgba(0, 255, 136, 0.1); }
+
+    .alert-card-modern {
+        border-left: 4px solid var(--primary-neon);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 12px;
+        transition: var(--transition-fast);
+    }
+
+    .alert-card-modern:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateX(10px);
+    }
+
+    .alert-card-modern.critical { border-left-color: var(--accent-neon); }
+    .alert-card-modern.warning { border-left-color: #f7971e; }
+
+    /* Estilo para los Sliders */
+    input[type="range"] {
+        accent-color: var(--primary-neon);
+    }
+
+    .slider-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-dim);
+    }
+
+    .slider-value-display {
+        color: var(--primary-neon);
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 700;
+    }
+
+    .notification-neon {
+        border: 1px solid var(--accent-neon);
+        background: rgba(255, 0, 200, 0.05);
+        color: var(--accent-neon);
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        box-shadow: 0 0 10px rgba(255, 0, 200, 0.1);
+        animation: pulseNeon 2s infinite;
+    }
+
+    @keyframes pulseNeon {
+        0% { opacity: 0.8; }
+        50% { opacity: 1; box-shadow: 0 0 20px rgba(255, 0, 200, 0.2); }
+        100% { opacity: 0.8; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row animate__animated animate__fadeIn">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <h1 class="dashboard-header-modern mb-0">DASHBOARD INTELIGENTE</h1>
+        <div class="text-dim small">
+            BIENVENIDO, <span class="text-primary-neon fw-bold">{{ current_user.username|upper }}</span>
         </div>
+    </div>
+</div>
 
-        <!-- Formulario -->
-        <div class="form-container">
-            <form method="POST" action="/predecir" class="row g-4">
-                <div class="col-md-6">
-                    <label class="form-label">Kilometraje recorrido:</label>
-                    <input type="number" step="any" name="kilometraje" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Consumo de combustible:</label>
-                    <input type="number" step="any" name="combustible" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Frecuencia de averías:</label>
-                    <input type="number" step="any" name="averias" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Condiciones de carga:</label>
-                    <input type="number" step="any" name="carga" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Rutas o pendientes frecuentes:</label>
-                    <input type="number" step="any" name="rutas" class="form-control" required>
+<!-- Notificaciones Dinámicas -->
+{% if notificaciones %}
+<div class="row mb-4">
+    <div class="col-12">
+        {% for note in notificaciones %}
+        <div class="notification-neon animate__animated animate__headShake">
+            <i class="fas fa-satellite-dish me-2"></i> {{ note }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Stats Grid -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="stat-card trucks p-4">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="stat-number h2 mb-1">{{ camiones|length }}</div>
+            <div class="stat-label text-dim small text-uppercase">Flota Total</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card alerts p-4">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-number h2 mb-1">{{ alertas_detalle|length }}</div>
+            <div class="stat-label text-dim small text-uppercase">Alertas Críticas</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card active p-4">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-number h2 mb-1">{{ camiones|length - alertas_detalle|length }}</div>
+            <div class="stat-label text-dim small text-uppercase">Estado Óptimo</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card p-4">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div class="stat-number h2 mb-1">IA</div>
+            <div class="stat-label text-dim small text-uppercase">Análisis Predictivo</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Mantenimiento Predictivo -->
+    <div class="col-lg-7">
+        <div class="predictive-form p-4 h-100">
+            <h4 class="mb-4 d-flex align-items-center gap-2">
+                <i class="fas fa-robot text-primary-neon"></i>
+                <span>ANÁLISIS DE IA (SCIKIT-LEARN)</span>
+            </h4>
+            
+            <form method="POST" action="{{ url_for('dashboard') }}" id="predictiveForm">
+                <div class="mb-4">
+                    <label class="form-label text-dim small text-uppercase">Seleccionar Unidad</label>
+                    <select name="camion_id" class="form-select" required>
+                        <option value="">Seleccione un camión...</option>
+                        {% for camion in camiones %}
+                        <option value="{{ camion.id }}">{{ camion.placa }} - {{ camion.modelo }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
-                <div class="col-12 action-buttons text-center">
-                    <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">
-                        <i class="fas fa-arrow-left me-1"></i> Volver a Logística
-                    </a>
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-search me-1"></i> Predecir
+                <div class="row g-4">
+                    {% set sliders = [
+                        ('kilometraje', 'Kilometraje', 'tachometer-alt'),
+                        ('combustible', 'Combustible', 'gas-pump'),
+                        ('averias', 'Averías', 'tools'),
+                        ('carga', 'Carga', 'weight-hanging'),
+                        ('rutas', 'Rutas', 'mountain')
+                    ] %}
+                    
+                    {% for name, label, icon in sliders %}
+                    <div class="col-md-6">
+                        <div class="slider-label">
+                            <span class="small text-uppercase"><i class="fas fa-{{ icon }} me-2"></i>{{ label }}</span>
+                            <span class="slider-value-display" id="{{ name }}Value">50%</span>
+                        </div>
+                        <input type="range" name="{{ name }}" min="0" max="100" value="50" class="form-range" 
+                               oninput="document.getElementById('{{ name }}Value').innerText = this.value + '%'">
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-5 text-end">
+                    <button type="submit" class="btn btn-primary btn-lg px-5">
+                        <i class="fas fa-microchip me-2"></i>EJECUTAR PREDICCIÓN
                     </button>
-                    <a href="{{ url_for('historial_mantenimiento') }}" class="btn btn-secondary">
-                        <i class="fas fa-history me-1"></i> Ver Historial
-                    </a>
                 </div>
             </form>
-        </div>
 
-        <!-- Resultados -->
-        {% if resultado %}
-        <div class="result-container">
-            <div class="alert alert-info border-0 text-center py-3">
-                <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i>Resultado: <strong>{{ resultado }}</strong></h4>
+            {% if resultado %}
+            <div class="result-card mt-4 p-4 animate__animated animate__fadeInUp" style="background: rgba(0,0,0,0.3); border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                <div class="d-flex align-items-center gap-4 mb-4">
+                    <div class="result-status-glow p-4 rounded-circle d-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px; background: {% if resultado == 'Revisión Recomendada' %}rgba(255, 0, 200, 0.1){% else %}rgba(0, 255, 136, 0.1){% endif %}; 
+                                border: 2px solid {% if resultado == 'Revisión Recomendada' %}var(--accent-neon){% else %}#00ff88{% endif %};
+                                box-shadow: 0 0 20px {% if resultado == 'Revisión Recomendada' %}var(--accent-neon){% else %}#00ff88{% endif %};">
+                        <i class="fas fa-{% if resultado == 'Revisión Recomendada' %}exclamation-triangle{% else %}check-circle{% endif %} fa-2x" 
+                           style="color: {% if resultado == 'Revisión Recomendada' %}var(--accent-neon){% else %}#00ff88{% endif %};"></i>
+                    </div>
+                    <div>
+                        <h3 class="mb-1" style="font-family: 'Orbitron', sans-serif; color: {% if resultado == 'Revisión Recomendada' %}var(--accent-neon){% else %}#00ff88{% endif %};">{{ resultado|upper }}</h3>
+                        <p class="text-dim mb-0">ANÁLISIS DE TELEMETRÍA COMPLETADO</p>
+                    </div>
+                </div>
+                
+                <!-- Contenedor para ApexCharts -->
+                <div id="predictionChart" style="min-height: 300px;"></div>
+                
+                <div id="prediction-data" 
+                     data-km="{{ datos_prediccion.km if datos_prediccion else 0 }}" 
+                     data-comb="{{ datos_prediccion.comb if datos_prediccion else 0 }}" 
+                     data-aver="{{ datos_prediccion.aver if datos_prediccion else 0 }}" 
+                     data-carg="{{ datos_prediccion.carg if datos_prediccion else 0 }}" 
+                     data-rut="{{ datos_prediccion.rut if datos_prediccion else 0 }}" 
+                     style="display: none;">
+                </div>
+                
+                <div class="mt-3 p-3 rounded-3" style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1);">
+                    <small class="text-dim d-block mb-2 text-uppercase" style="letter-spacing: 1px;">Sugerencia del Sistema:</small>
+                    {% if resultado == 'Revisión Recomendada' %}
+                        <span class="text-main">Se detectaron anomalías en los niveles de telemetría. Se sugiere programar una inspección técnica preventiva de inmediato.</span>
+                    {% else %}
+                        <span class="text-main">Todos los parámetros se encuentran dentro de los rangos operativos seguros. La unidad puede continuar en ruta.</span>
+                    {% endif %}
+                </div>
             </div>
-        </div>
+            {% endif %}
 
-        <div class="graphic-container text-center">
-            <img src="{{ url_for('static', filename=grafica) }}" alt="Gráfica de Datos" class="img-fluid rounded shadow-sm">
         </div>
-        {% endif %}
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <!-- Alertas de Aceite -->
+    <div class="col-lg-5">
+        <div class="alert-section p-4 h-100">
+            <h4 class="mb-4 d-flex align-items-center gap-2">
+                <i class="fas fa-oil-can text-secondary-neon"></i>
+                <span>ESTADO DE LUBRICANTES</span>
+            </h4>
+
+            <div class="alert-list-wrapper" style="max-height: 500px; overflow-y: auto;">
+                {% if alertas_detalle %}
+                    {% for alerta in alertas_detalle %}
+                    <div class="alert-card-modern {% if alerta.porcentaje >= 80 %}critical{% elif alerta.porcentaje >= 60 %}warning{% endif %} animate__animated animate__fadeInUp" style="animation-delay: calc({{ loop.index0 }} * 0.1s)">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-primary-neon">{{ alerta.placa }}</span>
+                            <span class="small text-dim">{{ alerta.kilometraje }} KM</span>
+                        </div>
+                        <div class="progress-container mb-2">
+                            <div class="progress-bar" style="width: {{ alerta.porcentaje }}%"></div>
+                        </div>
+                        <div class="text-end">
+                            <span class="small {% if alerta.porcentaje >= 80 %}text-danger{% else %}text-dim{% endif %}">
+                                {{ alerta.porcentaje }}% Capacidad
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shield-alt fa-3x text-dim mb-3 opacity-20"></i>
+                        <p class="text-dim">SISTEMA ÍNTEGRO<br><small>No hay alertas pendientes</small></p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataEl = document.getElementById('prediction-data');
+        if (dataEl) {
+            const options = {
+                series: [{
+                    name: 'Nivel Operativo',
+                    data: [
+                        parseFloat(dataEl.dataset.km),
+                        parseFloat(dataEl.dataset.comb),
+                        parseFloat(dataEl.dataset.aver),
+                        parseFloat(dataEl.dataset.carg),
+                        parseFloat(dataEl.dataset.rut)
+                    ]
+                }],
+                chart: {
+                    height: 350,
+                    type: 'radar',
+                    toolbar: { show: false },
+                    dropShadow: {
+                        enabled: true,
+                        blur: 10,
+                        left: 1,
+                        top: 1,
+                        opacity: 0.5,
+                        color: '#00f2ff'
+                    }
+                },
+                title: {
+                    text: 'TELEMETRÍA DE LA UNIDAD',
+                    style: {
+                        color: '#a0a0a0',
+                        fontFamily: 'Orbitron'
+                    }
+                },
+                colors: ['#00f2ff'],
+                fill: {
+                    opacity: 0.4,
+                    colors: ['#00f2ff']
+                },
+                stroke: {
+                    show: true,
+                    width: 2,
+                    colors: ['#00f2ff'],
+                    dashArray: 0
+                },
+                markers: {
+                    size: 4,
+                    colors: ['#0a0b10'],
+                    strokeColors: '#00f2ff',
+                    strokeWidth: 2,
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: function(val) { return val + "%" }
+                    }
+                },
+                xaxis: {
+                    categories: ['Kilometraje', 'Combustible', 'Averías', 'Carga', 'Rutas'],
+                    labels: {
+                        style: {
+                            colors: ['#a0a0a0', '#a0a0a0', '#a0a0a0', '#a0a0a0', '#a0a0a0'],
+                            fontSize: '12px',
+                            fontFamily: 'Inter'
+                        }
+                    }
+                },
+                yaxis: {
+                    show: false,
+                    min: 0,
+                    max: 100
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#predictionChart"), options);
+            chart.render();
+        }
+    });
+</script>
+{% endblock %}

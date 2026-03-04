@@ -1,33 +1,811 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <title>Agregar Camión</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Flota | APARCO CARGO EXPRESS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
+    <style>
+        :root {
+            --primary-dark: #1a365d;
+            --primary-blue: #2d5fde;
+            --secondary-blue: #4299e1;
+            --accent-green: #38b2ac;
+            --accent-orange: #ed8936;
+            --danger-red: #f56565;
+            --light-bg: #f7fafc;
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --card-shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header Animated */
+        .animated-header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-blue));
+            color: white;
+            padding: 2.5rem 0;
+            margin-bottom: 2.5rem;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 10px 30px rgba(45, 95, 222, 0.2);
+        }
+
+        .animated-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-30px, -30px) rotate(360deg); }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .logo-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition-smooth);
+            border-left: 5px solid var(--primary-blue);
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-green));
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-right: 1.5rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.primary { background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); }
+        .stat-icon.green { background: linear-gradient(135deg, var(--accent-green), #4fd1c7); }
+        .stat-icon.orange { background: linear-gradient(135deg, var(--accent-orange), #f6ad55); }
+        .stat-icon.red { background: linear-gradient(135deg, var(--danger-red), #fc8181); }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Navigation Menu */
+        .nav-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 1.2rem;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            font-weight: 600;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .nav-btn:hover::before {
+            left: 100%;
+        }
+
+        .nav-btn.add { background: linear-gradient(135deg, #48bb78, #38a169); }
+        .nav-btn.drivers { background: linear-gradient(135deg, #4299e1, #3182ce); }
+        .nav-btn.oil { background: linear-gradient(135deg, #ed8936, #dd6b20); }
+        .nav-btn.maintenance { background: linear-gradient(135deg, #805ad5, #6b46c1); }
+
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        /* Table Container */
+        .table-wrapper {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .table-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-green));
+        }
+
+        .table-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .data-table thead th {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-blue));
+            color: white;
+            font-weight: 600;
+            padding: 1.2rem;
+            border: none;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table tbody tr {
+            transition: var(--transition-smooth);
+        }
+
+        .data-table tbody tr:hover {
+            background: linear-gradient(90deg, rgba(45, 95, 222, 0.05), rgba(56, 178, 172, 0.05));
+            transform: translateX(5px);
+        }
+
+        .data-table tbody td {
+            padding: 1.2rem;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+
+        .truck-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            gap: 0.5rem;
+        }
+
+        .truck-badge.available { background: rgba(72, 187, 120, 0.1); color: #38a169; }
+        .truck-badge.maintenance { background: rgba(237, 137, 54, 0.1); color: #dd6b20; }
+        .truck-badge.onroute { background: rgba(66, 153, 225, 0.1); color: #3182ce; }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: var(--transition-smooth);
+            border: none;
+            cursor: pointer;
+        }
+
+        .action-btn.view { background: rgba(66, 153, 225, 0.1); color: var(--secondary-blue); }
+        .action-btn.edit { background: rgba(237, 137, 54, 0.1); color: var(--accent-orange); }
+        .action-btn.delete { background: rgba(245, 101, 101, 0.1); color: var(--danger-red); }
+
+        .action-btn:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Modal Styles */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 1.5rem;
+            border-bottom: none;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-control {
+            border-radius: 12px;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e2e8f0;
+            transition: var(--transition-smooth);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(45, 95, 222, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Floating Elements */
+        .floating-truck {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--accent-green));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            box-shadow: 0 15px 35px rgba(45, 95, 222, 0.4);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            z-index: 1000;
+            animation: float-truck 3s ease-in-out infinite;
+        }
+
+        @keyframes float-truck {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .floating-truck:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 20px 40px rgba(45, 95, 222, 0.5);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, #f8fafc, #edf2f7);
+            border-radius: 16px;
+            border: 2px dashed #cbd5e0;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: #a0aec0;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-responsive {
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .floating-truck {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+
+        /* Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <h1 class="mb-4">➕ Agregar Nuevo Camión</h1>
-        <form action="/agregar" method="post">
-            <div class="mb-3">
-                <label for="placa" class="form-label">Placa:</label>
-                <input type="text" class="form-control" id="placa" name="placa" required />
+<body>
+    <div class="container-fluid px-4 px-lg-5">
+        <!-- Animated Header -->
+        <div class="animated-header animate__animated animate__fadeInDown">
+            <div class="header-content">
+                <div class="logo-container">
+                    <i class="fas fa-truck-moving fa-2x"></i>
+                </div>
+                <h1 class="display-5 fw-bold mb-2">APARCO CARGO EXPRESS E.I.R.L.</h1>
+                <p class="lead mb-0 opacity-75">Sistema Inteligente de Gestión de Flota</p>
+                <div class="mt-3">
+                    <span class="badge bg-light text-primary fs-6">
+                        <i class="fas fa-sync-alt me-2"></i> Actualizado: <span id="currentTime"></span>
+                    </span>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="modelo" class="form-label">Modelo:</label>
-                <input type="text" class="form-control" id="modelo" name="modelo" required />
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid animate-on-scroll">
+            <div class="stat-card">
+                <div class="stat-icon primary">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <div>
+                    <h3 class="stat-value">{{ camiones|length }}</h3>
+                    <p class="stat-label">Camiones Activos</p>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="año" class="form-label">Año:</label>
-                <input type="number" class="form-control" id="año" name="año" required min="1900" max="2100" />
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div>
+                    <h3 class="stat-value">{{ camiones|length - 2 if camiones|length > 2 else 0 }}</h3>
+                    <p class="stat-label">Disponibles</p>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="capacidad" class="form-label">Capacidad (kg):</label>
-                <input type="number" class="form-control" id="capacidad" name="capacidad" required min="1" />
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <div>
+                    <h3 class="stat-value">2</h3>
+                    <p class="stat-label">En Mantenimiento</p>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">Guardar</button>
-            <a href="/" class="btn btn-secondary">Cancelar</a>
-        </form>
+            <div class="stat-card">
+                <div class="stat-icon red">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <h3 class="stat-value">1</h3>
+                    <p class="stat-label">Alertas Activas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Panel -->
+        <div class="nav-panel animate-on-scroll">
+            <div class="nav-buttons">
+                <button class="nav-btn add" data-bs-toggle="modal" data-bs-target="#modalAgregarCamion">
+                    <i class="fas fa-plus-circle fa-lg"></i>
+                    <span>Agregar Camión</span>
+                </button>
+                <a href="{{ url_for('conductores') }}" class="nav-btn drivers">
+                    <i class="fas fa-user-tie fa-lg"></i>
+                    <span>Conductores</span>
+                </a>
+                <a href="{{ url_for('cambios_aceite') }}" class="nav-btn oil">
+                    <i class="fas fa-oil-can fa-lg"></i>
+                    <span>Cambios de Aceite</span>
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="nav-btn maintenance">
+                    <i class="fas fa-wrench fa-lg"></i>
+                    <span>Mantenimiento</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Table -->
+        <div class="table-wrapper animate-on-scroll">
+            <div class="table-title">
+                <div>
+                    <h3 class="mb-0"><i class="fas fa-list-alt me-2 text-primary"></i>Flota de Camiones</h3>
+                    <p class="text-muted mb-0">Gestión completa de vehículos</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Buscar camión...">
+                    </div>
+                    <button class="btn btn-outline-primary">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+
+            {% if camiones %}
+            <div class="table-responsive">
+                <table class="data-table" id="trucksTable">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Modelo</th>
+                            <th>Conductor</th>
+                            <th>Estado</th>
+                            <th>Última Revisión</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in camiones %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-truck text-primary fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <strong class="d-block">{{ c.placa }}</strong>
+                                        <small class="text-muted">ID: TRK-{{ '%03d' % loop.index }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ c.modelo }}</strong>
+                                <div class="small text-muted">Año: 202{{ loop.index % 3 }}</div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="fas fa-user-circle text-secondary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ c.conductor }}</strong>
+                                        <div class="small text-muted">Licencia: A{{ '%06d' % loop.index }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% set estado_num = loop.index % 3 %}
+                                {% if estado_num == 0 %}
+                                <span class="truck-badge maintenance">
+                                    <i class="fas fa-tools"></i> Mantenimiento
+                                </span>
+                                {% elif estado_num == 1 %}
+                                <span class="truck-badge onroute">
+                                    <i class="fas fa-road"></i> En Ruta
+                                </span>
+                                {% else %}
+                                <span class="truck-badge available">
+                                    <i class="fas fa-check"></i> Disponible
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{% if loop.index % 2 == 0 %}Hace 3 días{% else %}Hoy{% endif %}</strong>
+                                <div class="small text-muted">
+                                    <i class="fas fa-clock"></i> 08:00 AM
+                                </div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="#" class="action-btn view" title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="#" class="action-btn edit" title="Editar camión">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('eliminar_camion', id=c.id) }}" 
+                                       class="action-btn delete" 
+                                       title="Eliminar camión"
+                                       onclick="return confirmDelete(event, '{{ c.placa }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-truck-loading"></i>
+                </div>
+                <h3 class="text-muted mb-3">No hay camiones registrados</h3>
+                <p class="text-muted mb-4">Comienza agregando el primer camión a la flota</p>
+                <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modalAgregarCamion">
+                    <i class="fas fa-plus-circle me-2"></i>Agregar Primer Camión
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Floating Action Button -->
+        <div class="floating-truck" data-bs-toggle="modal" data-bs-target="#modalAgregarCamion">
+            <i class="fas fa-plus"></i>
+        </div>
     </div>
+
+    <!-- Modal Agregar Camión -->
+    <div class="modal fade" id="modalAgregarCamion" tabindex="-1" aria-labelledby="modalAgregarCamionLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAgregarCamionLabel">
+                <i class="fas fa-truck me-2"></i> Registrar Nuevo Camión
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <form action="{{ url_for('agregar_camion') }}" method="POST" id="addTruckForm">
+              <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label class="form-label fw-bold">Placa del Vehículo</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light">
+                            <i class="fas fa-id-card"></i>
+                        </span>
+                        <input type="text" name="placa" class="form-control" placeholder="Ej: ABC-123" required>
+                    </div>
+                    <small class="text-muted">Formato: Tres letras seguido de tres números</small>
+                  </div>
+                  
+                  <div class="col-md-12 mb-3">
+                    <label class="form-label fw-bold">Modelo del Camión</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light">
+                            <i class="fas fa-truck-pickup"></i>
+                        </span>
+                        <input type="text" name="modelo" class="form-control" placeholder="Ej: Volvo FH16" required>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-12 mb-3">
+                    <label class="form-label fw-bold">Conductor Asignado</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light">
+                            <i class="fas fa-user-tie"></i>
+                        </span>
+                        <input type="text" name="conductor" class="form-control" placeholder="Nombre completo del conductor" required>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-12 mb-3">
+                    <label class="form-label fw-bold">Fecha de Adquisición</label>
+                    <input type="date" name="fecha_adquisicion" class="form-control">
+                  </div>
+              </div>
+              
+              <div class="modal-footer border-top-0 pt-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Guardar Camión
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Inicializar DataTable
+        $(document).ready(function() {
+            if ($('#trucksTable').length) {
+                $('#trucksTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                    },
+                    pageLength: 10,
+                    responsive: true,
+                    order: [[0, 'asc']],
+                    dom: '<"top"f>rt<"bottom"lip><"clear">'
+                });
+                
+                // Búsqueda en tiempo real
+                $('#searchInput').on('keyup', function() {
+                    $('#trucksTable').DataTable().search(this.value).draw();
+                });
+            }
+            
+            // Animación scroll
+            function animateOnScroll() {
+                const elements = document.querySelectorAll('.animate-on-scroll');
+                elements.forEach(element => {
+                    const position = element.getBoundingClientRect();
+                    if (position.top < window.innerHeight - 100) {
+                        element.classList.add('visible');
+                    }
+                });
+            }
+            
+            window.addEventListener('scroll', animateOnScroll);
+            animateOnScroll(); // Ejecutar al cargar
+            
+            // Form validation
+            $('#addTruckForm').on('submit', function(e) {
+                const placa = $('input[name="placa"]').val();
+                // Validación básica de placa
+                if (!placa || placa.trim() === '') {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Por favor ingrese una placa válida',
+                        confirmButtonColor: '#2d5fde'
+                    });
+                    return false;
+                }
+                return true;
+            });
+        });
+        
+        // Confirmación de eliminación
+        function confirmDelete(event, placa) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            Swal.fire({
+                title: '¿Eliminar Camión?',
+                html: `¿Está seguro de eliminar el camión <strong>${placa}</strong>?<br>Esta acción no se puede deshacer.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f56565',
+                cancelButtonColor: '#4299e1',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                backdrop: 'rgba(0,0,0,0.4)'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = event.target.closest('a').href;
+                }
+            });
+            
+            return false;
+        }
+        
+        // Actualizar hora actual
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            const timeElement = document.getElementById('currentTime');
+            if (timeElement) {
+                timeElement.textContent = now.toLocaleDateString('es-ES', options);
+            }
+        }
+        
+        // Actualizar cada minuto
+        setInterval(updateCurrentTime, 60000);
+        updateCurrentTime();
+        
+        // Efecto de entrada
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.animate-on-scroll');
+            elements.forEach((el, index) => {
+                setTimeout(() => {
+                    el.classList.add('visible');
+                }, index * 100);
+            });
+        });
+    </script>
 </body>
 </html>

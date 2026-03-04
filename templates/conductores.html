@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Conductores | APARCO CARGO{% endblock %}
+
+{% block extra_css %}
+<style>
+    .driver-card-neon {
+        background: var(--card-bg);
+        backdrop-filter: var(--glass-effect);
+        border: 1px solid var(--border-glow);
+        border-radius: 15px;
+        padding: 1rem;
+        transition: var(--transition-fast);
+    }
+
+    .driver-card-neon:hover {
+        border-color: var(--secondary-neon);
+        box-shadow: 0 0 15px rgba(112, 0, 255, 0.2);
+    }
+
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+
+    .status-active { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+    .status-warning { background: #ffaa00; box-shadow: 0 0 10px #ffaa00; }
+    .status-expired { background: var(--accent-neon); box-shadow: 0 0 10px var(--accent-neon); }
+
+    .license-tag {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.8rem;
+        color: var(--primary-neon);
+        border: 1px solid var(--primary-neon);
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4 animate__animated animate__fadeIn">
+    <div class="col-md-8">
+        <h1 class="page-title-futuristic">CENTRO DE PERSONAL</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('agregar_conductor') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>NUEVO CONDUCTOR
+        </a>
+    </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="stat-card p-4">
+            <div class="stat-number h2 mb-1">{{ total_drivers }}</div>
+            <div class="stat-label text-dim small text-uppercase">Total Personal</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card p-4">
+            <div class="stat-number h2 mb-1 text-success">{{ active_drivers }}</div>
+            <div class="stat-label text-dim small text-uppercase">Licencias Activas</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card p-4">
+            <div class="stat-number h2 mb-1 text-warning">{{ warning_drivers }}</div>
+            <div class="stat-label text-dim small text-uppercase">Próximos a Vencer</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card p-4">
+            <div class="stat-number h2 mb-1 text-danger">{{ expired_drivers }}</div>
+            <div class="stat-label text-dim small text-uppercase">Licencias Vencidas</div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-table-container animate__animated animate__zoomIn">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>CONDUCTOR</th>
+                    <th>IDENTIFICACIÓN</th>
+                    <th>LICENCIA</th>
+                    <th>ESTADO</th>
+                    <th>VENCIMIENTO</th>
+                    <th class="text-center">ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if conductores %}
+                    {% for conductor in conductores %}
+                    <tr class="animate__animated animate__fadeInUp" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="nav-icon rounded-circle" style="width: 40px; height: 40px; background: rgba(112, 0, 255, 0.1); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold">{{ conductor['nombre'] }}</div>
+                                    <small class="text-dim">{{ conductor['telefono'] }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="text-dim small">DNI: <span class="text-main">{{ conductor['dni'] }}</span></div>
+                            <div class="text-dim small">CAT: <span class="text-main">{{ conductor['categoria'] }}</span></div>
+                        </td>
+                        <td>
+                            <span class="license-tag">{{ conductor['licencia'] }}</span>
+                        </td>
+                        <td>
+                            {% if conductor.estado == 'expired' %}
+                                <span class="status-dot status-expired"></span> <span class="text-danger small fw-bold">VENCIDA</span>
+                            {% elif conductor.estado == 'warning' %}
+                                <span class="status-dot status-warning"></span> <span class="text-warning small fw-bold">POR VENCER</span>
+                            {% elif conductor.estado == 'active' %}
+                                <span class="status-dot status-active"></span> <span class="text-success small fw-bold">ACTIVA</span>
+                            {% else %}
+                                <span class="status-dot"></span> <span class="text-dim small">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-bold">{{ conductor['vencimiento'] or 'No definida' }}</div>
+                            {% if conductor.dias_restantes is not none %}
+                                <small class="{% if conductor.dias_restantes < 0 %}text-danger{% elif conductor.dias_restantes <= 30 %}text-warning{% else %}text-dim{% endif %}">
+                                    {{ conductor.dias_restantes }} días restantes
+                                </small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('editar_conductor', id=conductor['id']) }}" class="action-btn-neon btn-edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('eliminar_conductor', id=conductor['id']) }}" 
+                                   class="action-btn-neon btn-delete" 
+                                   onclick="return confirm('¿Eliminar registro de conductor?')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="fas fa-user-slash fa-3x text-dim mb-3 opacity-20"></i>
+                            <p class="text-dim">SIN PERSONAL REGISTRADO EN LA BASE</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

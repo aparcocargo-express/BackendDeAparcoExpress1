@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Conductor | APARCO CARGO{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center animate__animated animate__fadeIn">
+    <div class="col-lg-8">
+        <div class="card-dashboard p-5">
+            <h2 class="page-title-futuristic text-center mb-5">ACTUALIZAR PERSONAL</h2>
+            
+            <form action="{{ url_for('editar_conductor', id=conductor['id']) }}" method="POST">
+                <div class="row g-4">
+                    <div class="col-md-12">
+                        <label class="form-label text-dim small text-uppercase">Nombre Completo</label>
+                        <input type="text" name="nombre" class="form-control" value="{{ conductor['nombre'] }}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">DNI / Identificación</label>
+                        <input type="text" name="dni" class="form-control" value="{{ conductor['dni'] }}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">N° de Licencia</label>
+                        <input type="text" name="licencia" class="form-control" value="{{ conductor['licencia'] }}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Categoría</label>
+                        <select name="categoria" class="form-select" required>
+                            <option value="A-I" {% if conductor['categoria'] == 'A-I' %}selected{% endif %}>A-I</option>
+                            <option value="A-IIa" {% if conductor['categoria'] == 'A-IIa' %}selected{% endif %}>A-IIa</option>
+                            <option value="A-IIb" {% if conductor['categoria'] == 'A-IIb' %}selected{% endif %}>A-IIb</option>
+                            <option value="A-IIIa" {% if conductor['categoria'] == 'A-IIIa' %}selected{% endif %}>A-IIIa</option>
+                            <option value="A-IIIb" {% if conductor['categoria'] == 'A-IIIb' %}selected{% endif %}>A-IIIb</option>
+                            <option value="A-IIIc" {% if conductor['categoria'] == 'A-IIIc' %}selected{% endif %}>A-IIIc</option>
+                            <option value="A4" {% if conductor['categoria'] == 'A4' %}selected{% endif %}>A4 (Maquinaria)</option>
+                            <option value="C" {% if conductor['categoria'] == 'C' %}selected{% endif %}>C (Moto/Otros)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Teléfono</label>
+                        <input type="text" name="telefono" class="form-control" value="{{ conductor['telefono'] }}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Vencimiento Licencia</label>
+                        <input type="date" name="vencimiento" class="form-control" value="{{ conductor['vencimiento'] }}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Dirección</label>
+                        <input type="text" name="direccion" class="form-control" value="{{ conductor['direccion'] }}">
+                    </div>
+                </div>
+
+                <div class="mt-5 d-flex gap-3 justify-content-end">
+                    <a href="{{ url_for('conductores') }}" class="btn btn-outline-secondary px-4">CANCELAR</a>
+                    <button type="submit" class="btn btn-primary px-5">GUARDAR CAMBIOS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

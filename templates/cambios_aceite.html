@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Control de Lubricantes | APARCO CARGO{% endblock %}
+
+{% block extra_css %}
+<style>
+    .oil-status-card {
+        border-left: 4px solid var(--primary-neon);
+        padding: 1.2rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        transition: var(--transition-fast);
+    }
+
+    .oil-status-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateX(10px);
+    }
+
+    .oil-status-card.due { border-left-color: var(--accent-neon); }
+    .oil-status-card.warning { border-left-color: #ffaa00; }
+    .oil-status-card.ok { border-left-color: #00ff88; }
+
+    .km-badge {
+        font-family: 'Orbitron', sans-serif;
+        color: var(--primary-neon);
+        background: rgba(0, 242, 255, 0.1);
+        padding: 2px 10px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4 animate__animated animate__fadeIn">
+    <div class="col-md-8">
+        <h1 class="page-title-futuristic">CONTROL DE LUBRICANTES</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('agregar_cambio') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>NUEVO REGISTRO
+        </a>
+    </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="row g-4 mb-5">
+    {% set total_records = registros|length %}
+    <div class="col-md-4">
+        <div class="stat-card p-4">
+            <div class="stat-number h2 mb-1">{{ total_records }}</div>
+            <div class="stat-label text-dim small text-uppercase">Registros Históricos</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card p-4">
+            <div class="stat-number h2 mb-1 text-primary-neon">IA</div>
+            <div class="stat-label text-dim small text-uppercase">Monitoreo Predictivo</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card p-4">
+            <div class="stat-number h2 mb-1 text-secondary-neon">API</div>
+            <div class="stat-label text-dim small text-uppercase">Sincronización de Flota</div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-table-container animate__animated animate__zoomIn">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>UNIDAD</th>
+                    <th>FECHA</th>
+                    <th>KILOMETRAJE</th>
+                    <th>PRÓXIMO CAMBIO</th>
+                    <th>ESTADO</th>
+                    <th class="text-center">ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if registros %}
+                    {% for r in registros %}
+                    {% set progress_percent = (r.kilometraje|int / r.proximo_cambio|int * 100)|round(0)|int %}
+                    <tr class="animate__animated animate__fadeInUp" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-truck text-primary-neon"></i>
+                                <span class="fw-bold">{{ r.placa }}</span>
+                            </div>
+                        </td>
+                        <td>{{ r.fecha }}</td>
+                        <td>
+                            <span class="km-badge">{{ r.kilometraje }} KM</span>
+                        </td>
+                        <td>
+                            <div class="fw-bold">{{ r.proximo_cambio }} KM</div>
+                            <div class="progress-container mt-1" style="height: 6px !important;">
+                                <div class="progress-bar" style="width: {{ progress_percent if progress_percent <= 100 else 100 }}%"></div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if progress_percent >= 100 %}
+                                <span class="badge bg-danger">VENCIDO</span>
+                            {% elif progress_percent >= 80 %}
+                                <span class="badge bg-warning">PRÓXIMO</span>
+                            {% else %}
+                                <span class="badge bg-success">ÓPTIMO</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('eliminar_cambio', id=r.id) }}" 
+                                   class="action-btn-neon btn-delete" 
+                                   onclick="return confirm('¿Eliminar registro de lubricante?')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="fas fa-oil-can fa-3x text-dim mb-3 opacity-20"></i>
+                            <p class="text-dim">SIN REGISTROS DE LUBRICANTES</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
