@@ -564,12 +564,17 @@ def reporte_excel():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='reporte_flota.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
-# ------------------ Main ------------------
-if __name__ == '__main__':
+# ------------------ Inicialización (Para Railway/Gunicorn) ------------------
+with app.app_context():
     crear_tablas()
     actualizar_tabla_camiones()
-    entrenar_modelo() # Entrenar al iniciar
-    
-    # Configuración para Railway/Producción
+    try:
+        entrenar_modelo()
+    except Exception as e:
+        print(f"Aviso: No se pudo entrenar el modelo inicial: {e}")
+
+# ------------------ Main ------------------
+if __name__ == '__main__':
+    # Configuración para ejecución local
     port = int(os.environ.get("PORT", 5001))
-    app.run(host='0.0.0.0', port=port, debug=False) # Desactivar debug para evitar doble reinicio en este entorno
+    app.run(host='0.0.0.0', port=port, debug=False)
