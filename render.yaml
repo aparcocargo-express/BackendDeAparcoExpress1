@@ -3,7 +3,9 @@ services:
     name: logistica-camiones
     runtime: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app --log-file -"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --log-file -"
+    healthCheckPath: "/login"
+    autoDeploy: true
     envVars:
       - key: DB_HOST
         fromEnvVar: DB_HOST
@@ -17,4 +19,8 @@ services:
         fromEnvVar: DB_PORT
       - key: FLASK_ENV
         value: production
+      - key: ADMIN_USERNAME
+        fromEnvVar: ADMIN_USERNAME
+      - key: ADMIN_PASSWORD
+        fromEnvVar: ADMIN_PASSWORD
  
