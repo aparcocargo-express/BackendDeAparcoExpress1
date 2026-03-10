@@ -129,12 +129,21 @@ def crear_tablas():
     )
     """)
     
-    # Crear usuario por defecto si no existe
-    # hashed_pw = generate_password_hash('admin123')
-    # try:
-    #     conn.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", ('admin', hashed_pw))
-    # except:
-    #     pass
+    # Crear usuario inicial si la tabla está vacía
+    try:
+        cur = conn.execute("SELECT COUNT(*) FROM usuarios")
+        count = cur.fetchone()[0]
+        if count == 0:
+            admin_user = os.environ.get("ADMIN_USERNAME", "admin")
+            admin_pass = os.environ.get("ADMIN_PASSWORD")
+            flask_env = os.environ.get("FLASK_ENV", "development")
+            if admin_pass:
+                hashed_pw = generate_password_hash(admin_pass)
+                conn.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", (admin_user, hashed_pw))
+            elif flask_env != "production":
+                conn.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", ("admin", "admin"))
+    except Exception as e:
+        print(f"⚠️ No se pudo crear usuario inicial: {e}")
 
     conn.commit()
     conn.close()
