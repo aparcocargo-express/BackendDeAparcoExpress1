@@ -113,6 +113,10 @@
                         <td class="text-dim">{{ camion.fecha_adquisicion if camion.fecha_adquisicion else 'N/A' }}</td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('editar_camion', id=camion.id) }}" 
+                                   class="action-btn-neon btn-edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
                                 <a href="{{ url_for('eliminar_camion', id=camion.id) }}" 
                                    class="action-btn-neon btn-delete" 
                                    onclick="return confirm('¿Confirmar desactivación de unidad?')">

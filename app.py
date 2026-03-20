@@ -206,6 +206,37 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
+        env_admin_user = os.environ.get("ADMIN_USERNAME", "admin")
+        env_admin_pass = os.environ.get("ADMIN_PASSWORD")
+        if env_admin_pass and username == env_admin_user and password == env_admin_pass:
+            conn = conectar_db()
+            try:
+                user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
+                hashed_pw = generate_password_hash(env_admin_pass)
+                if not user_row:
+                    conn.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", (username, hashed_pw))
+                    conn.commit()
+                    user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
+                else:
+                    stored = user_row["password"]
+                    matches = stored == env_admin_pass
+                    if not matches:
+                        try:
+                            matches = check_password_hash(stored, env_admin_pass)
+                        except Exception:
+                            matches = False
+                    if not matches:
+                        conn.execute("UPDATE usuarios SET password = ? WHERE username = ?", (hashed_pw, username))
+                        conn.commit()
+                        user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
+            finally:
+                conn.close()
+
+            if user_row:
+                user = User(user_row['id'], user_row['username'])
+                login_user(user)
+                return redirect(url_for('dashboard'))
         
         conn = conectar_db()
         user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
@@ -397,6 +428,30 @@ def eliminar_camion(id):
     flash('✅ Camión eliminado', 'success')
     return redirect(url_for('index_camiones'))
 
+@app.route('/editar_camion/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_camion(id):
+    conn = conectar_db()
+    if request.method == 'POST':
+        placa = request.form['placa']
+        modelo = request.form['modelo']
+        conductor = request.form['conductor']
+        fecha_adquisicion = request.form.get('fecha_adquisicion', None)
+        
+        conn.execute("""
+            UPDATE camiones 
+            SET placa = ?, modelo = ?, conductor = ?, fecha_adquisicion = ?
+            WHERE id = ?
+        """, (placa, modelo, conductor, fecha_adquisicion, id))
+        conn.commit()
+        conn.close()
+        flash('✅ Camión actualizado', 'success')
+        return redirect(url_for('index_camiones'))
+    
+    camion = conn.execute("SELECT * FROM camiones WHERE id = ?", (id,)).fetchone()
+    conn.close()
+    return render_template("editar_camion.html", camion=camion)
+
 # ------------------ Rutas Conductores ------------------
 @app.route('/conductores')
 @login_required
@@ -497,21 +552,72 @@ def cambios_aceite():
 @app.route('/agregar_cambio', methods=['GET', 'POST'])
 @login_required
 def agregar_cambio():
-    conn = conectar_db()
     if request.method == 'POST':
-        conn.execute("""
-            INSERT INTO cambios_aceite (camion_id, fecha, kilometraje, proximo_cambio, observaciones)
-            VALUES (?, ?, ?, ?, ?)
-        """, (request.form['camion_id'], request.form['fecha'], request.form['kilometraje'], 
-              request.form['proximo_cambio'], request.form['observaciones']))
-        conn.commit()
-        conn.close()
-        flash('✅ Registro guardado', 'success')
-        return redirect(url_for('cambios_aceite'))
+        try:
+            conn = conectar_db()
+            conn.execute("""
+                INSERT INTO cambios_aceite (camion_id, fecha, kilometraje, proximo_cambio, observaciones)
+                VALUES (?, ?, ?, ?, ?)
+            """, (request.form['camion_id'], request.form['fecha'], request.form['kilometraje'], 
+                  request.form['proximo_cambio'], request.form['observaciones']))
+            conn.commit()
+            conn.close()
+            flash('✅ Registro guardado', 'success')
+            return redirect(url_for('cambios_aceite'))
+        except Exception as e:
+            flash(f'❌ Error al guardar: {str(e)}', 'danger')
     
+    conn = conectar_db()
     camiones = conn.execute("SELECT * FROM camiones").fetchall()
     conn.close()
     return render_template("agregar_cambio.html", camiones=camiones)
+
+@app.route('/eliminar_cambio/<int:id>')
+@login_required
+def eliminar_cambio(id):
+    conn = conectar_db()
+    conn.execute("DELETE FROM cambios_aceite WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    flash('🗑️ Registro eliminado', 'info')
+    return redirect(url_for('cambios_aceite'))
+
+@app.route('/editar_cambio_aceite/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_cambio_aceite(id):
+    conn = conectar_db()
+    if request.method == 'POST':
+        camion_id = request.form['camion_id']
+        fecha = request.form['fecha']
+        kilometraje = request.form['kilometraje']
+        proximo_cambio = request.form['proximo_cambio']
+        observaciones = request.form['observaciones']
+        
+        conn.execute("""
+            UPDATE cambios_aceite 
+            SET camion_id = ?, fecha = ?, kilometraje = ?, proximo_cambio = ?, observaciones = ?
+            WHERE id = ?
+        """, (camion_id, fecha, kilometraje, proximo_cambio, observaciones, id))
+        conn.commit()
+        conn.close()
+        flash('✅ Registro actualizado', 'success')
+        return redirect(url_for('cambios_aceite'))
+    
+    cambio = conn.execute("SELECT * FROM cambios_aceite WHERE id = ?", (id,)).fetchone()
+    camiones = conn.execute("SELECT * FROM camiones").fetchall()
+    conn.close()
+    return render_template("editar_cambio_aceite.html", cambio=cambio, camiones=camiones)
+
+@app.route('/historial_mantenimiento')
+@login_required
+def historial_mantenimiento():
+    conn = conectar_db()
+    registros = conn.execute("""
+        SELECT hm.*, c.placa FROM historial_mantenimiento hm 
+        JOIN camiones c ON hm.camion_id = c.id ORDER BY hm.id DESC
+    """).fetchall()
+    conn.close()
+    return render_template("historial_mantenimiento.html", registros=registros)
 
 # ------------------ Reportes ------------------
 @app.route('/reporte/pdf')

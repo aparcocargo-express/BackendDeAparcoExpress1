@@ -84,7 +84,9 @@
             <tbody>
                 {% if registros %}
                     {% for r in registros %}
-                    {% set progress_percent = (r.kilometraje|int / r.proximo_cambio|int * 100)|round(0)|int %}
+                    {% set km_actual = r.kilometraje|int %}
+                    {% set km_proximo = r.proximo_cambio|int %}
+                    {% set progress_percent = (km_actual / km_proximo * 100)|round(0)|int if km_proximo > 0 else 0 %}
                     <tr class="animate__animated animate__fadeInUp" style="animation-delay: {{ loop.index0 * 0.1 }}s">
                         <td>
                             <div class="d-flex align-items-center gap-2">
@@ -113,6 +115,10 @@
                         </td>
                         <td class="text-center">
                             <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('editar_cambio_aceite', id=r.id) }}" 
+                                   class="action-btn-neon btn-edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
                                 <a href="{{ url_for('eliminar_cambio', id=r.id) }}" 
                                    class="action-btn-neon btn-delete" 
                                    onclick="return confirm('¿Eliminar registro de lubricante?')">

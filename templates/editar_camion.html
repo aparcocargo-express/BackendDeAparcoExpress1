@@ -7,21 +7,25 @@
 </head>
 <body class="container mt-5">
     <h2>Editar Camión</h2>
-    <form method="POST" action="/actualizar/{{ camion[0] }}">
+    <form method="POST" action="{{ url_for('editar_camion', id=camion['id']) }}">
         <div class="mb-3">
-            <label>Placa</label>
-            <input type="text" name="placa" value="{{ camion[1] }}" class="form-control" required>
+            <label class="form-label">Placa</label>
+            <input type="text" name="placa" value="{{ camion['placa'] }}" class="form-control" required>
         </div>
         <div class="mb-3">
-            <label>Modelo</label>
-            <input type="text" name="modelo" value="{{ camion[2] }}" class="form-control" required>
+            <label class="form-label">Modelo</label>
+            <input type="text" name="modelo" value="{{ camion['modelo'] }}" class="form-control" required>
         </div>
         <div class="mb-3">
-            <label>Capacidad</label>
-            <input type="number" name="capacidad" value="{{ camion[3] }}" class="form-control" required>
+            <label class="form-label">Conductor</label>
+            <input type="text" name="conductor" value="{{ camion['conductor'] }}" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Fecha Adquisición</label>
+            <input type="date" name="fecha_adquisicion" value="{{ camion['fecha_adquisicion'] }}" class="form-control">
         </div>
         <button type="submit" class="btn btn-primary">Actualizar</button>
-        <a href="/" class="btn btn-secondary">Cancelar</a>
+        <a href="{{ url_for('index_camiones') }}" class="btn btn-secondary">Cancelar</a>
     </form>
 </body>
 </html>
