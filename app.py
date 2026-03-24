@@ -46,7 +46,6 @@ def load_user(user_id):
 def conectar_db():
     conn = sqlite3.connect("logistica.db")
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 # ------------------ Crear tablas ------------------
@@ -338,24 +337,18 @@ def dashboard():
 @app.route('/gastos', methods=['GET', 'POST'])
 @login_required
 def gastos():
-    if request.method == 'POST':
-        try:
-            camion_id = request.form['camion_id']
-            tipo = request.form['tipo']
-            monto = request.form['monto']
-            desc = request.form['descripcion']
-            conn = conectar_db()
-            conn.execute("INSERT INTO gastos (camion_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)",
-                        (camion_id, tipo, monto, desc))
-            conn.commit()
-            conn.close()
-            flash('✅ Gasto registrado', 'success')
-            return redirect(url_for('gastos'))
-        except Exception as e:
-            flash(f'❌ Error al registrar gasto: {str(e)}', 'danger')
-            return redirect(url_for('gastos'))
-    
     conn = conectar_db()
+    if request.method == 'POST':
+        camion_id = request.form['camion_id']
+        tipo = request.form['tipo']
+        monto = request.form['monto']
+        desc = request.form['descripcion']
+        conn.execute("INSERT INTO gastos (camion_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)",
+                    (camion_id, tipo, monto, desc))
+        conn.commit()
+        flash('✅ Gasto registrado', 'success')
+        return redirect(url_for('gastos'))
+    
     lista_gastos = conn.execute("""
         SELECT g.*, c.placa FROM gastos g 
         JOIN camiones c ON g.camion_id = c.id 
@@ -438,33 +431,25 @@ def eliminar_camion(id):
 @app.route('/editar_camion/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_camion(id):
-    if request.method == 'POST':
-        try:
-            placa = request.form['placa']
-            modelo = request.form['modelo']
-            conductor = request.form['conductor']
-            fecha_adquisicion = request.form.get('fecha_adquisicion', None)
-            
-            conn = conectar_db()
-            conn.execute("""
-                UPDATE camiones 
-                SET placa = ?, modelo = ?, conductor = ?, fecha_adquisicion = ?
-                WHERE id = ?
-            """, (placa, modelo, conductor, fecha_adquisicion, id))
-            conn.commit()
-            conn.close()
-            flash('✅ Camión actualizado', 'success')
-            return redirect(url_for('index_camiones'))
-        except Exception as e:
-            flash(f'❌ Error al actualizar: {str(e)}', 'danger')
-            return redirect(url_for('index_camiones'))
-    
     conn = conectar_db()
+    if request.method == 'POST':
+        placa = request.form['placa']
+        modelo = request.form['modelo']
+        conductor = request.form['conductor']
+        fecha_adquisicion = request.form.get('fecha_adquisicion', None)
+        
+        conn.execute("""
+            UPDATE camiones 
+            SET placa = ?, modelo = ?, conductor = ?, fecha_adquisicion = ?
+            WHERE id = ?
+        """, (placa, modelo, conductor, fecha_adquisicion, id))
+        conn.commit()
+        conn.close()
+        flash('✅ Camión actualizado', 'success')
+        return redirect(url_for('index_camiones'))
+    
     camion = conn.execute("SELECT * FROM camiones WHERE id = ?", (id,)).fetchone()
     conn.close()
-    if not camion:
-        flash('❌ Camión no encontrado', 'danger')
-        return redirect(url_for('index_camiones'))
     return render_template("editar_camion.html", camion=camion)
 
 # ------------------ Rutas Conductores ------------------
@@ -506,43 +491,35 @@ def conductores():
 @login_required
 def agregar_conductor():
     if request.method == 'POST':
-        try:
-            conn = conectar_db()
-            conn.execute("""
-                INSERT INTO conductores (nombre, dni, licencia, categoria, telefono, vencimiento, direccion)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (request.form['nombre'], request.form['dni'], request.form['licencia'], 
-                  request.form['categoria'], request.form['telefono'], request.form['vencimiento'], request.form['direccion']))
-            conn.commit()
-            conn.close()
-            flash('✅ Conductor agregado', 'success')
-            return redirect(url_for('conductores'))
-        except Exception as e:
-            flash(f'❌ Error al agregar conductor: {str(e)}', 'danger')
+        conn = conectar_db()
+        conn.execute("""
+            INSERT INTO conductores (nombre, dni, licencia, categoria, telefono, vencimiento, direccion)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (request.form['nombre'], request.form['dni'], request.form['licencia'], 
+              request.form['categoria'], request.form['telefono'], request.form['vencimiento'], request.form['direccion']))
+        conn.commit()
+        conn.close()
+        flash('✅ Conductor agregado', 'success')
+        return redirect(url_for('conductores'))
     return render_template("agregar_conductor.html")
 
 @app.route('/editar_conductor/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_conductor(id):
-    if request.method == 'POST':
-        try:
-            conn = conectar_db()
-            conn.execute("""
-                UPDATE conductores 
-                SET nombre=?, dni=?, licencia=?, categoria=?, telefono=?, vencimiento=?, direccion=?
-                WHERE id=?
-            """, (request.form['nombre'], request.form['dni'], request.form['licencia'], 
-                  request.form['categoria'], request.form['telefono'], request.form['vencimiento'], 
-                  request.form['direccion'], id))
-            conn.commit()
-            conn.close()
-            flash('✅ Conductor actualizado', 'success')
-            return redirect(url_for('conductores'))
-        except Exception as e:
-            flash(f'❌ Error al actualizar conductor: {str(e)}', 'danger')
-            return redirect(url_for('conductores'))
-    
     conn = conectar_db()
+    if request.method == 'POST':
+        conn.execute("""
+            UPDATE conductores 
+            SET nombre=?, dni=?, licencia=?, categoria=?, telefono=?, vencimiento=?, direccion=?
+            WHERE id=?
+        """, (request.form['nombre'], request.form['dni'], request.form['licencia'], 
+              request.form['categoria'], request.form['telefono'], request.form['vencimiento'], 
+              request.form['direccion'], id))
+        conn.commit()
+        conn.close()
+        flash('✅ Conductor actualizado', 'success')
+        return redirect(url_for('conductores'))
+    
     conductor = conn.execute("SELECT * FROM conductores WHERE id=?", (id,)).fetchone()
     conn.close()
     if not conductor:
@@ -608,35 +585,27 @@ def eliminar_cambio(id):
 @app.route('/editar_cambio_aceite/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_cambio_aceite(id):
-    if request.method == 'POST':
-        try:
-            camion_id = request.form['camion_id']
-            fecha = request.form['fecha']
-            kilometraje = request.form['kilometraje']
-            proximo_cambio = request.form['proximo_cambio']
-            observaciones = request.form['observaciones']
-            
-            conn = conectar_db()
-            conn.execute("""
-                UPDATE cambios_aceite 
-                SET camion_id = ?, fecha = ?, kilometraje = ?, proximo_cambio = ?, observaciones = ?
-                WHERE id = ?
-            """, (camion_id, fecha, kilometraje, proximo_cambio, observaciones, id))
-            conn.commit()
-            conn.close()
-            flash('✅ Registro actualizado', 'success')
-            return redirect(url_for('cambios_aceite'))
-        except Exception as e:
-            flash(f'❌ Error al actualizar registro: {str(e)}', 'danger')
-            return redirect(url_for('cambios_aceite'))
-    
     conn = conectar_db()
+    if request.method == 'POST':
+        camion_id = request.form['camion_id']
+        fecha = request.form['fecha']
+        kilometraje = request.form['kilometraje']
+        proximo_cambio = request.form['proximo_cambio']
+        observaciones = request.form['observaciones']
+        
+        conn.execute("""
+            UPDATE cambios_aceite 
+            SET camion_id = ?, fecha = ?, kilometraje = ?, proximo_cambio = ?, observaciones = ?
+            WHERE id = ?
+        """, (camion_id, fecha, kilometraje, proximo_cambio, observaciones, id))
+        conn.commit()
+        conn.close()
+        flash('✅ Registro actualizado', 'success')
+        return redirect(url_for('cambios_aceite'))
+    
     cambio = conn.execute("SELECT * FROM cambios_aceite WHERE id = ?", (id,)).fetchone()
     camiones = conn.execute("SELECT * FROM camiones").fetchall()
     conn.close()
-    if not cambio:
-        flash('❌ Registro no encontrado', 'danger')
-        return redirect(url_for('cambios_aceite'))
     return render_template("editar_cambio_aceite.html", cambio=cambio, camiones=camiones)
 
 @app.route('/historial_mantenimiento')
