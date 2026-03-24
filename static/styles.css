@@ -1,7 +1,7 @@
 :root {
     --bg-dark: #0a0b10;
     --card-bg: rgba(20, 22, 35, 0.8);
-    --primary-neon: #00f2ff;
+    --primary-neon: #0084ff; /* Un azul más vibrante tipo Bootstrap Neon */
     --secondary-neon: #7000ff;
     --accent-neon: #ff00c8;
     --text-main: #e0e0e0;
@@ -291,24 +291,27 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    background: rgba(0, 242, 255, 0.05);
-    border: 1px solid var(--border-glow);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--primary-neon) !important;
     transition: var(--transition-fast);
     text-decoration: none;
+    font-size: 1.1rem;
+}
+
+.action-btn-neon i {
+    filter: drop-shadow(0 0 5px rgba(0, 132, 255, 0.4));
 }
 
 .action-btn-neon:hover {
     background: var(--primary-neon);
-    color: var(--bg-dark) !important;
-    box-shadow: 0 0 15px var(--primary-neon);
+    color: #ffffff !important;
+    box-shadow: 0 0 20px var(--primary-neon);
     transform: translateY(-3px);
 }
 
-.btn-delete:hover {
-    background: var(--primary-neon); /* Cambiado a celeste por petición del usuario */
-    color: var(--bg-dark) !important;
-    box-shadow: 0 0 15px var(--primary-neon);
+.action-btn-neon:hover i {
+    filter: none;
 }
 
 /* Scrollbar Personalizada */
