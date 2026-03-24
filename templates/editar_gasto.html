@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Gasto | APARCO CARGO{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center animate__animated animate__fadeIn">
+    <div class="col-lg-8">
+        <div class="card-dashboard p-5">
+            <h2 class="page-title-futuristic text-center mb-5">EDITAR TRANSACCIÓN</h2>
+            
+            <form method="POST">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Unidad / Camión</label>
+                        <select name="camion_id" class="form-select" required>
+                            {% for c in camiones %}
+                            <option value="{{ c.id }}" {% if c.id == gasto.camion_id %}selected{% endif %}>
+                                {{ c.placa }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Fecha</label>
+                        <input type="date" name="fecha" class="form-control" value="{{ gasto.fecha }}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Tipo de Gasto</label>
+                        <select name="tipo" class="form-select" required>
+                            {% set tipos = ['Combustible', 'Repuesto', 'Reparación', 'Seguro', 'Otros'] %}
+                            {% for t in tipos %}
+                            <option value="{{ t }}" {% if t == gasto.tipo %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label text-dim small text-uppercase">Monto (S/)</label>
+                        <input type="number" step="0.01" name="monto" class="form-control" value="{{ gasto.monto }}" required>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label text-dim small text-uppercase">Descripción</label>
+                        <textarea name="descripcion" class="form-control" rows="3">{{ gasto.descripcion }}</textarea>
+                    </div>
+                </div>
+
+                <div class="mt-5 d-flex gap-3 justify-content-end">
+                    <a href="{{ url_for('gastos') }}" class="btn btn-outline-secondary px-4">CANCELAR</a>
+                    <button type="submit" class="btn btn-primary px-5">ACTUALIZAR GASTO</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

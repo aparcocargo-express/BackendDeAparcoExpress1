@@ -42,6 +42,7 @@
                             <th>TIPO</th>
                             <th>DESCRIPCIÓN</th>
                             <th class="text-end">MONTO</th>
+                            <th class="text-center">ACCIONES</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -52,6 +53,19 @@
                             <td><span class="badge bg-dark border border-secondary">{{ g.tipo }}</span></td>
                             <td class="text-dim">{{ g.descripcion }}</td>
                             <td class="text-end gasto-monto">S/ {{ "{:,.2f}".format(g.monto) }}</td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="{{ url_for('editar_gasto', id=g.id) }}" 
+                                       class="action-btn-neon btn-edit" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('eliminar_gasto', id=g.id) }}" 
+                                       class="action-btn-neon btn-delete" title="Eliminar"
+                                       onclick="return confirm('¿Eliminar este gasto?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

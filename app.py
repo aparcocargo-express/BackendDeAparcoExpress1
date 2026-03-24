@@ -358,6 +358,53 @@ def gastos():
     conn.close()
     return render_template("gastos.html", gastos=lista_gastos, camiones=camiones)
 
+@app.route('/eliminar_gasto/<int:id>')
+@login_required
+def eliminar_gasto(id):
+    try:
+        conn = conectar_db()
+        conn.execute("DELETE FROM gastos WHERE id = ?", (id,))
+        conn.commit()
+        conn.close()
+        flash('✅ Gasto eliminado', 'success')
+    except Exception as e:
+        flash(f'❌ Error al eliminar gasto: {str(e)}', 'danger')
+    return redirect(url_for('gastos'))
+
+@app.route('/editar_gasto/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_gasto(id):
+    conn = conectar_db()
+    if request.method == 'POST':
+        try:
+            camion_id = request.form['camion_id']
+            tipo = request.form['tipo']
+            monto = request.form['monto']
+            descripcion = request.form['descripcion']
+            fecha = request.form['fecha']
+            
+            conn.execute("""
+                UPDATE gastos 
+                SET camion_id = ?, tipo = ?, monto = ?, descripcion = ?, fecha = ?
+                WHERE id = ?
+            """, (camion_id, tipo, monto, descripcion, fecha, id))
+            conn.commit()
+            conn.close()
+            flash('✅ Gasto actualizado', 'success')
+            return redirect(url_for('gastos'))
+        except Exception as e:
+            flash(f'❌ Error al actualizar gasto: {str(e)}', 'danger')
+    
+    gasto = conn.execute("SELECT * FROM gastos WHERE id = ?", (id,)).fetchone()
+    camiones = conn.execute("SELECT * FROM camiones").fetchall()
+    conn.close()
+    
+    if not gasto:
+        flash('❌ Gasto no encontrado', 'danger')
+        return redirect(url_for('gastos'))
+        
+    return render_template("editar_gasto.html", gasto=gasto, camiones=camiones)
+
 # ------------------ Funciones auxiliares ------------------
 def obtener_alertas_camiones():
     conn = conectar_db()
