@@ -9,6 +9,8 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 import joblib
+import psycopg2
+import psycopg2.extras
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -22,7 +24,24 @@ app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'
 
 # ------------------ Conexión a la base de datos ------------------
+class PGConn:
+    def __init__(self, raw):
+        self.raw = raw
+    def execute(self, query, params=()):
+        q = query.replace("?", "%s")
+        cur = self.raw.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(q, params or ())
+        return cur
+    def commit(self):
+        self.raw.commit()
+    def close(self):
+        self.raw.close()
+
 def conectar_db():
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url and db_url.startswith("postgres"):
+        raw = psycopg2.connect(db_url)
+        return PGConn(raw)
     db_path = os.environ.get("SQLITE_PATH", "logistica.db")
     db_dir = os.path.dirname(db_path)
     if db_dir:
@@ -34,74 +53,126 @@ def conectar_db():
 # ------------------ Crear tablas ------------------
 def crear_tablas():
     conn = conectar_db()
-    
-    # Tabla camiones
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS camiones (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        placa TEXT NOT NULL,
-        modelo TEXT,
-        conductor TEXT,
-        anio INTEGER,
-        capacidad REAL,
-        fecha_adquisicion DATE
-    )
-    """)
-    
-    # Tabla conductores
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS conductores (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        dni TEXT,
-        licencia TEXT,
-        categoria TEXT,
-        telefono TEXT,
-        vencimiento DATE,
-        direccion TEXT
-    )
-    """)
-    
-    # Tabla cambios_aceite
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS cambios_aceite (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        camion_id INTEGER NOT NULL,
-        fecha DATE NOT NULL,
-        kilometraje INTEGER NOT NULL,
-        proximo_cambio INTEGER NOT NULL,
-        observaciones TEXT,
-        FOREIGN KEY (camion_id) REFERENCES camiones(id)
-    )
-    """)
-    
-    # Tabla historial_mantenimiento
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS historial_mantenimiento (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        camion_id INTEGER,
-        kilometraje REAL,
-        combustible REAL,
-        averias REAL,
-        carga REAL,
-        rutas REAL,
-        resultado TEXT,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
 
-    # Tabla de Gastos
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS gastos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        camion_id INTEGER NOT NULL,
-        tipo TEXT NOT NULL, -- 'Combustible', 'Repuesto', 'Reparación'
-        monto REAL NOT NULL,
-        descripcion TEXT,
-        fecha DATE DEFAULT CURRENT_DATE,
-        FOREIGN KEY (camion_id) REFERENCES camiones(id)
-    )
-    """)
+    is_pg = os.environ.get("DATABASE_URL", "").startswith("postgres")
+    if is_pg:
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS camiones (
+            id SERIAL PRIMARY KEY,
+            placa TEXT NOT NULL,
+            modelo TEXT,
+            conductor TEXT,
+            anio INTEGER,
+            capacidad REAL,
+            fecha_adquisicion DATE
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS conductores (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            dni TEXT,
+            licencia TEXT,
+            categoria TEXT,
+            telefono TEXT,
+            vencimiento DATE,
+            direccion TEXT
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS cambios_aceite (
+            id SERIAL PRIMARY KEY,
+            camion_id INTEGER NOT NULL,
+            fecha DATE NOT NULL,
+            kilometraje INTEGER NOT NULL,
+            proximo_cambio INTEGER NOT NULL,
+            observaciones TEXT,
+            FOREIGN KEY (camion_id) REFERENCES camiones(id)
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS historial_mantenimiento (
+            id SERIAL PRIMARY KEY,
+            camion_id INTEGER,
+            kilometraje REAL,
+            combustible REAL,
+            averias REAL,
+            carga REAL,
+            rutas REAL,
+            resultado TEXT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS gastos (
+            id SERIAL PRIMARY KEY,
+            camion_id INTEGER NOT NULL,
+            tipo TEXT NOT NULL,
+            monto REAL NOT NULL,
+            descripcion TEXT,
+            fecha DATE DEFAULT CURRENT_DATE,
+            FOREIGN KEY (camion_id) REFERENCES camiones(id)
+        )
+        """)
+    else:
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS camiones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            placa TEXT NOT NULL,
+            modelo TEXT,
+            conductor TEXT,
+            anio INTEGER,
+            capacidad REAL,
+            fecha_adquisicion DATE
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS conductores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            dni TEXT,
+            licencia TEXT,
+            categoria TEXT,
+            telefono TEXT,
+            vencimiento DATE,
+            direccion TEXT
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS cambios_aceite (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            camion_id INTEGER NOT NULL,
+            fecha DATE NOT NULL,
+            kilometraje INTEGER NOT NULL,
+            proximo_cambio INTEGER NOT NULL,
+            observaciones TEXT,
+            FOREIGN KEY (camion_id) REFERENCES camiones(id)
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS historial_mantenimiento (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            camion_id INTEGER,
+            kilometraje REAL,
+            combustible REAL,
+            averias REAL,
+            carga REAL,
+            rutas REAL,
+            resultado TEXT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS gastos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            camion_id INTEGER NOT NULL,
+            tipo TEXT NOT NULL,
+            monto REAL NOT NULL,
+            descripcion TEXT,
+            fecha DATE DEFAULT CURRENT_DATE,
+            FOREIGN KEY (camion_id) REFERENCES camiones(id)
+        )
+        """)
 
     conn.commit()
     conn.close()
@@ -110,17 +181,19 @@ def crear_tablas():
 def actualizar_tabla_camiones():
     try:
         conn = conectar_db()
-        cursor = conn.execute("PRAGMA table_info(camiones)")
-        columnas_existentes = [col[1] for col in cursor.fetchall()]
-        
+        is_pg = os.environ.get("DATABASE_URL", "").startswith("postgres")
+        if is_pg:
+            cur = conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = ?", ('camiones',))
+            columnas_existentes = [row['column_name'] for row in cur.fetchall()]
+        else:
+            cur = conn.execute("PRAGMA table_info(camiones)")
+            columnas_existentes = [col[1] for col in cur.fetchall()]
         if 'conductor' not in columnas_existentes:
             conn.execute("ALTER TABLE camiones ADD COLUMN conductor TEXT")
             conn.commit()
-        
         if 'fecha_adquisicion' not in columnas_existentes:
             conn.execute("ALTER TABLE camiones ADD COLUMN fecha_adquisicion DATE")
             conn.commit()
-        
         conn.close()
     except Exception as e:
         print(f"❌ Error al actualizar tabla camiones: {e}")
