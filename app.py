@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -11,6 +11,8 @@ from sklearn.ensemble import RandomForestClassifier
 import joblib
 import psycopg2
 import psycopg2.extras
+import argparse
+import sys
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -198,11 +200,69 @@ def actualizar_tabla_camiones():
     except Exception as e:
         print(f"❌ Error al actualizar tabla camiones: {e}")
 
+def migrar_sqlite_a_postgres(sqlite_path, postgres_url):
+    if not sqlite_path or not os.path.exists(sqlite_path):
+        raise FileNotFoundError(f"No existe el archivo SQLite: {sqlite_path}")
+    if not postgres_url:
+        raise ValueError("Falta postgres_url (DATABASE_URL).")
+
+    old_db_url = os.environ.get("DATABASE_URL")
+    os.environ["DATABASE_URL"] = postgres_url
+    try:
+        crear_tablas()
+        actualizar_tabla_camiones()
+    finally:
+        if old_db_url is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = old_db_url
+
+    src = sqlite3.connect(sqlite_path)
+    src.row_factory = sqlite3.Row
+    dst = psycopg2.connect(postgres_url)
+
+    tablas = ["camiones", "conductores", "cambios_aceite", "historial_mantenimiento", "gastos"]
+    orden = ["camiones", "conductores", "cambios_aceite", "historial_mantenimiento", "gastos"]
+
+    try:
+        with dst:
+            with dst.cursor() as cur:
+                for tabla in orden:
+                    exists = src.execute(
+                        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                        (tabla,),
+                    ).fetchone()
+                    if not exists:
+                        continue
+
+                    rows = src.execute(f"SELECT * FROM {tabla}").fetchall()
+                    if not rows:
+                        continue
+
+                    for row in rows:
+                        row_dict = dict(row)
+                        cols = list(row_dict.keys())
+                        placeholders = ", ".join(["%s"] * len(cols))
+                        cols_sql = ", ".join(cols)
+                        sql = f"INSERT INTO {tabla} ({cols_sql}) VALUES ({placeholders}) ON CONFLICT (id) DO NOTHING"
+                        cur.execute(sql, [row_dict[c] for c in cols])
+
+                for tabla in tablas:
+                    cur.execute(
+                        f"SELECT setval(pg_get_serial_sequence('{tabla}', 'id'), COALESCE((SELECT MAX(id) FROM {tabla}), 1), true)"
+                    )
+    finally:
+        try:
+            src.close()
+        finally:
+            dst.close()
+
 # ------------------ Machine Learning ------------------
 def entrenar_modelo():
     """Entrena un modelo real si hay suficiente historial"""
     conn = conectar_db()
-    df = pd.read_sql_query("SELECT kilometraje, combustible, averias, carga, rutas, resultado FROM historial_mantenimiento", conn)
+    raw_conn = getattr(conn, "raw", conn)
+    df = pd.read_sql_query("SELECT kilometraje, combustible, averias, carga, rutas, resultado FROM historial_mantenimiento", raw_conn)
     conn.close()
 
     if len(df) < 10:
@@ -245,10 +305,17 @@ def dashboard():
     notificaciones = []
     
     # Vencimiento de licencias
-    conductores_vencen = conn.execute("""
-        SELECT nombre, vencimiento FROM conductores 
-        WHERE date(vencimiento) <= date('now', '+15 days')
-    """).fetchall()
+    is_pg = os.environ.get("DATABASE_URL", "").startswith("postgres")
+    if is_pg:
+        conductores_vencen = conn.execute("""
+            SELECT nombre, vencimiento FROM conductores
+            WHERE vencimiento IS NOT NULL AND vencimiento <= CURRENT_DATE + INTERVAL '15 days'
+        """).fetchall()
+    else:
+        conductores_vencen = conn.execute("""
+            SELECT nombre, vencimiento FROM conductores 
+            WHERE date(vencimiento) <= date('now', '+15 days')
+        """).fetchall()
     for c in conductores_vencen:
         notificaciones.append(f"⚠️ Licencia de {c['nombre']} vence el {c['vencimiento']}")
 
@@ -490,10 +557,15 @@ def conductores():
     conductores_list = []
     for row in lista:
         conductor = dict(row)
-        vencimiento_str = conductor['vencimiento']
-        if vencimiento_str:
+        vencimiento_val = conductor['vencimiento']
+        if vencimiento_val:
             try:
-                vencimiento_date = datetime.strptime(vencimiento_str, '%Y-%m-%d').date()
+                if isinstance(vencimiento_val, datetime):
+                    vencimiento_date = vencimiento_val.date()
+                elif isinstance(vencimiento_val, date):
+                    vencimiento_date = vencimiento_val
+                else:
+                    vencimiento_date = datetime.strptime(str(vencimiento_val), '%Y-%m-%d').date()
                 conductor['vencimiento_date'] = vencimiento_date
                 days_remaining = (vencimiento_date - today_date).days
                 conductor['dias_restantes'] = days_remaining
@@ -731,6 +803,12 @@ with app.app_context():
 
 # ------------------ Main ------------------
 if __name__ == '__main__':
-    # Configuración para ejecución local
+    if len(sys.argv) > 1 and sys.argv[1] == "migrate":
+        parser = argparse.ArgumentParser(prog="app.py migrate")
+        parser.add_argument("--sqlite", default=os.environ.get("SQLITE_PATH", "logistica.db"))
+        parser.add_argument("--postgres-url", "--pg", dest="postgres_url", default=os.environ.get("DATABASE_URL"))
+        args = parser.parse_args(sys.argv[2:])
+        migrar_sqlite_a_postgres(args.sqlite, args.postgres_url)
+        raise SystemExit(0)
     port = int(os.environ.get("PORT", 5001))
     app.run(host='0.0.0.0', port=port, debug=False)
