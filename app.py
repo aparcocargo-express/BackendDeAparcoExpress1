@@ -23,7 +23,11 @@ app.secret_key = 'tu_clave_secreta_aqui'
 
 # ------------------ Conexión a la base de datos ------------------
 def conectar_db():
-    conn = sqlite3.connect("logistica.db")
+    db_path = os.environ.get("SQLITE_PATH", "logistica.db")
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
