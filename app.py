@@ -9,8 +9,6 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 import joblib
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -23,25 +21,6 @@ from flask import send_file
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'
 
-# ------------------ Configuración de Auth ------------------
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-class User(UserMixin):
-    def __init__(self, id, username):
-        self.id = id
-        self.username = username
-
-@login_manager.user_loader
-def load_user(user_id):
-    conn = conectar_db()
-    user = conn.execute("SELECT id, username FROM usuarios WHERE id = ?", (user_id,)).fetchone()
-    conn.close()
-    if user:
-        return User(user['id'], user['username'])
-    return None
-
 # ------------------ Conexión a la base de datos ------------------
 def conectar_db():
     conn = sqlite3.connect("logistica.db")
@@ -51,15 +30,6 @@ def conectar_db():
 # ------------------ Crear tablas ------------------
 def crear_tablas():
     conn = conectar_db()
-    
-    # Tabla usuarios para Auth
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
-    )
-    """)
     
     # Tabla camiones
     conn.execute("""
@@ -128,22 +98,6 @@ def crear_tablas():
         FOREIGN KEY (camion_id) REFERENCES camiones(id)
     )
     """)
-    
-    # Crear usuario inicial si la tabla está vacía
-    try:
-        cur = conn.execute("SELECT COUNT(*) FROM usuarios")
-        count = cur.fetchone()[0]
-        if count == 0:
-            admin_user = os.environ.get("ADMIN_USERNAME", "admin")
-            admin_pass = os.environ.get("ADMIN_PASSWORD")
-            flask_env = os.environ.get("FLASK_ENV", "development")
-            if admin_pass:
-                hashed_pw = generate_password_hash(admin_pass)
-                conn.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", (admin_user, hashed_pw))
-            elif flask_env != "production":
-                conn.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", ("admin", "admin"))
-    except Exception as e:
-        print(f"⚠️ No se pudo crear usuario inicial: {e}")
 
     conn.commit()
     conn.close()
@@ -200,73 +154,12 @@ def predecir_mantenimiento(km, comb, aver, carg, rut):
             return "Revisión Recomendada"
         return "Estado Normal"
 
-# ------------------ Rutas de Autenticación ------------------
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        env_admin_user = os.environ.get("ADMIN_USERNAME", "admin")
-        env_admin_pass = os.environ.get("ADMIN_PASSWORD")
-        if env_admin_pass and username == env_admin_user and password == env_admin_pass:
-            conn = conectar_db()
-            try:
-                user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
-                hashed_pw = generate_password_hash(env_admin_pass)
-                if not user_row:
-                    conn.execute("INSERT INTO usuarios (username, password) VALUES (?, ?)", (username, hashed_pw))
-                    conn.commit()
-                    user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
-                else:
-                    stored = user_row["password"]
-                    matches = stored == env_admin_pass
-                    if not matches:
-                        try:
-                            matches = check_password_hash(stored, env_admin_pass)
-                        except Exception:
-                            matches = False
-                    if not matches:
-                        conn.execute("UPDATE usuarios SET password = ? WHERE username = ?", (hashed_pw, username))
-                        conn.commit()
-                        user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
-            finally:
-                conn.close()
-
-            if user_row:
-                user = User(user_row['id'], user_row['username'])
-                login_user(user)
-                return redirect(url_for('dashboard'))
-        
-        conn = conectar_db()
-        user_row = conn.execute("SELECT * FROM usuarios WHERE username = ?", (username,)).fetchone()
-        conn.close()
-        
-        # Por simplicidad para el usuario en este entorno, aceptaremos admin/admin sin hash
-        if user_row and (user_row['password'] == password or check_password_hash(user_row['password'], password)):
-            user = User(user_row['id'], user_row['username'])
-            login_user(user)
-            return redirect(url_for('dashboard'))
-        
-        flash('Usuario o contraseña incorrectos', 'danger')
-    return render_template('login.html')
-
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
 # ------------------ Rutas principales ------------------
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard', methods=['GET', 'POST'])
-@login_required
 def dashboard():
     conn = conectar_db()
     camiones = conn.execute("SELECT * FROM camiones").fetchall()
@@ -336,7 +229,6 @@ def dashboard():
 
 # ------------------ Gestión de Gastos ------------------
 @app.route('/gastos', methods=['GET', 'POST'])
-@login_required
 def gastos():
     if request.method == 'POST':
         try:
@@ -366,7 +258,6 @@ def gastos():
     return render_template("gastos.html", gastos=lista_gastos, camiones=camiones)
 
 @app.route('/eliminar_gasto/<int:id>')
-@login_required
 def eliminar_gasto(id):
     try:
         conn = conectar_db()
@@ -379,7 +270,6 @@ def eliminar_gasto(id):
     return redirect(url_for('gastos'))
 
 @app.route('/editar_gasto/<int:id>', methods=['GET', 'POST'])
-@login_required
 def editar_gasto(id):
     conn = conectar_db()
     if request.method == 'POST':
@@ -442,7 +332,6 @@ def obtener_alertas_camiones():
 
 # ------------------ Rutas Camiones ------------------
 @app.route('/camiones')
-@login_required
 def index_camiones():
     conn = conectar_db()
     camiones = conn.execute("SELECT * FROM camiones").fetchall()
@@ -450,7 +339,6 @@ def index_camiones():
     return render_template("index_logistica.html", camiones=camiones)
 
 @app.route('/agregar_camion', methods=['POST'])
-@login_required
 def agregar_camion():
     try:
         placa = request.form['placa']
@@ -473,7 +361,6 @@ def agregar_camion():
     return redirect(url_for('index_camiones'))
 
 @app.route('/eliminar_camion/<int:id>')
-@login_required
 def eliminar_camion(id):
     try:
         conn = conectar_db()
@@ -486,7 +373,6 @@ def eliminar_camion(id):
     return redirect(url_for('index_camiones'))
 
 @app.route('/editar_camion/<int:id>', methods=['GET', 'POST'])
-@login_required
 def editar_camion(id):
     conn = conectar_db()
     if request.method == 'POST':
@@ -518,7 +404,6 @@ def editar_camion(id):
 
 # ------------------ Rutas Conductores ------------------
 @app.route('/conductores')
-@login_required
 def conductores():
     conn = conectar_db()
     lista = conn.execute("SELECT * FROM conductores").fetchall()
@@ -552,7 +437,6 @@ def conductores():
                          expired_drivers=len([c for c in conductores_list if c.get('estado') == 'expired']))
 
 @app.route('/agregar_conductor', methods=['GET', 'POST'])
-@login_required
 def agregar_conductor():
     if request.method == 'POST':
         conn = conectar_db()
@@ -568,7 +452,6 @@ def agregar_conductor():
     return render_template("agregar_conductor.html")
 
 @app.route('/editar_conductor/<int:id>', methods=['GET', 'POST'])
-@login_required
 def editar_conductor(id):
     conn = conectar_db()
     if request.method == 'POST':
@@ -592,7 +475,6 @@ def editar_conductor(id):
     return render_template("editar_conductor.html", conductor=conductor)
 
 @app.route('/eliminar_conductor/<int:id>')
-@login_required
 def eliminar_conductor(id):
     try:
         conn = conectar_db()
@@ -606,7 +488,6 @@ def eliminar_conductor(id):
 
 # ------------------ Rutas Cambios de Aceite ------------------
 @app.route('/cambios_aceite')
-@login_required
 def cambios_aceite():
     conn = conectar_db()
     registros = conn.execute("""
@@ -617,7 +498,6 @@ def cambios_aceite():
     return render_template("cambios_aceite.html", registros=registros)
 
 @app.route('/agregar_cambio', methods=['GET', 'POST'])
-@login_required
 def agregar_cambio():
     if request.method == 'POST':
         try:
@@ -640,7 +520,6 @@ def agregar_cambio():
     return render_template("agregar_cambio.html", camiones=camiones)
 
 @app.route('/eliminar_cambio/<int:id>')
-@login_required
 def eliminar_cambio(id):
     try:
         conn = conectar_db()
@@ -653,7 +532,6 @@ def eliminar_cambio(id):
     return redirect(url_for('cambios_aceite'))
 
 @app.route('/editar_cambio_aceite/<int:id>', methods=['GET', 'POST'])
-@login_required
 def editar_cambio_aceite(id):
     conn = conectar_db()
     if request.method == 'POST':
@@ -686,7 +564,6 @@ def editar_cambio_aceite(id):
     return render_template("editar_cambio_aceite.html", cambio=cambio, camiones=camiones)
 
 @app.route('/historial_mantenimiento')
-@login_required
 def historial_mantenimiento():
     conn = conectar_db()
     registros = conn.execute("""
@@ -697,7 +574,6 @@ def historial_mantenimiento():
     return render_template("historial_mantenimiento.html", registros=registros)
 
 @app.route('/eliminar_analisis/<int:id>')
-@login_required
 def eliminar_analisis(id):
     try:
         conn = conectar_db()
@@ -711,7 +587,6 @@ def eliminar_analisis(id):
 
 # ------------------ Reportes ------------------
 @app.route('/reporte/pdf')
-@login_required
 def reporte_pdf():
     conn = conectar_db()
     camiones = conn.execute("SELECT * FROM camiones").fetchall()
@@ -748,7 +623,6 @@ def reporte_pdf():
     return send_file(buffer, as_attachment=True, download_name='reporte_flota.pdf', mimetype='application/pdf')
 
 @app.route('/reporte/excel')
-@login_required
 def reporte_excel():
     conn = conectar_db()
     camiones = conn.execute("SELECT * FROM camiones").fetchall()
