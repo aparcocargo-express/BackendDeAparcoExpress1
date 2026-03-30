@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    container_name: logistica-web
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=production
+      - PORT=8000
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/logistica
+    depends_on:
+      - db
+    # Descomenta para migrar desde un SQLite local:
+    # volumes:
+    #   - ./logistica.db:/app/logistica.db
+  db:
+    image: postgres:15
+    container_name: logistica-db
+    environment:
+      - POSTGRES_DB=logistica
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
+
