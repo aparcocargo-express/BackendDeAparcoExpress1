@@ -9,8 +9,10 @@ services:
       - FLASK_ENV=production
       - PORT=8000
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/logistica
+      - WAIT_SECONDS=8
     depends_on:
       - db
+    command: ["/bin/sh", "-c", "sleep ${WAIT_SECONDS:-8} && exec gunicorn app:app --bind 0.0.0.0:8000 --log-file -"]
     # Descomenta para migrar desde un SQLite local:
     # volumes:
     #   - ./logistica.db:/app/logistica.db
@@ -27,4 +29,3 @@ services:
       - pgdata:/var/lib/postgresql/data
 volumes:
   pgdata:
-
